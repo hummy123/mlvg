@@ -36,48 +36,51 @@ datatype blend_factor =
 | OneMinusDstAlpha
 | SrcAlphaSaturate
 
-datatype composite_operation =
-  SourceOver
-| SourceIn
-| SourceOut
-| Atop
-| DestinationOver
-| DestinationIn
-| DestinationOut
-| DestinationAtop
-| Lighter
-| Copy
-| Xor
+structure CompositeOperation =
+struct
+  datatype composite_operation =
+    SourceOver
+  | SourceIn
+  | SourceOut
+  | Atop
+  | DestinationOver
+  | DestinationIn
+  | DestinationOut
+  | DestinationAtop
+  | Lighter
+  | Copy
+  | Xor
 
-type composite_operation_state =
-  { srcRgb: blend_factor
-  , dstRgb: blend_factor
-  , srcAlpha: blend_factor
-  , dstAlpha: blend_factor
-  }
+  type t =
+    { srcRgb: blend_factor
+    , dstRgb: blend_factor
+    , srcAlpha: blend_factor
+    , dstAlpha: blend_factor
+    }
 
-fun clamp (v, low, high) =
-  if Real.< (v, low) then low else if Real.> (v, high) then high else v
+  fun initFactors (sfactor, dfactor) =
+    {srcRgb = sfactor, dstRgb = dfactor, srcAlpha = sfactor, dstAlpha = dfactor}
 
-fun lerpRGBA (c0: color, c1: color, u) =
-  let
-    val a = clamp (u, 0.0, 1.0)
-
-    val oma = 1.0 - a
-
-    val r = a * (#r c0) + oma * (#r c1)
-    val g = a * (#g c0) + oma * (#g c1)
-    val b = a * (#b c0) + oma * (#b c1)
-    val a = a * (#a c0) + oma * (#a c1)
-  in
-    {r = r, g = g, b = b, a = a}
-  end
+  fun initCompositeOperation operation =
+    case operation of
+      SourceOver => initFactors (One, OneMinusSrcAlpha)
+    | SourceIn => initFactors (DstAlpha, Zero)
+    | SourceOut => initFactors (OneMinusDstAlpha, Zero)
+    | Atop => initFactors (DstAlpha, OneMinusSrcAlpha)
+    | DestinationOver => initFactors (OneMinusDstAlpha, One)
+    | DestinationIn => initFactors (Zero, SrcAlpha)
+    | DestinationOut => initFactors (Zero, OneMinusSrcAlpha)
+    | DestinationAtop => initFactors (OneMinusSrcAlpha, SrcAlpha)
+    | Lighter => initFactors (One, One)
+    | Copy => initFactors (One, Zero)
+    | Xor => initFactors (OneMinusSrcAlpha, OneMinusSrcAlpha)
+end
 
 type scissor =
   {xform: real * real * real * real * real * real, extent: real * real}
 
 type state =
-  { compositeOperation: composite_operation
+  { compositeOperation: CompositeOperation.t
   , fill: paint
   , stroke: paint
   , strokeWidth: real
@@ -130,3 +133,99 @@ type path =
   , winding: winding
   , convex: bool
   }
+
+fun clamp (v, low, high) =
+  if Real.< (v, low) then low else if Real.> (v, high) then high else v
+
+fun solidityToWinding solidity =
+  case solidity of
+    Solid => CCW
+  | Hole => CW
+
+fun rgbToReal x =
+  let val x = Real.fromInt x
+  in Real./ (x, 255.0)
+  end
+
+fun rgba (r, g, b, a) =
+  let
+    val r = rgbToReal r
+    val g = rgbToReal g
+    val b = rgbToReal b
+    val a = rgbToReal a
+  in
+    {r = r, g = g, b = b, a = a}
+  end
+
+fun rgb (r, g, b) =
+  let
+    val r = rgbToReal r
+    val g = rgbToReal g
+    val b = rgbToReal b
+  in
+    {r = r, g = g, b = b, a = 1.0}
+  end
+
+fun lerpRGBA (c0: color, c1: color, u) =
+  let
+    val a = clamp (u, 0.0, 1.0)
+    val oma = 1.0 - a
+
+    val r = a * (#r c0) + oma * (#r c1)
+    val g = a * (#g c0) + oma * (#g c1)
+    val b = a * (#b c0) + oma * (#b c1)
+    val a = a * (#a c0) + oma * (#a c1)
+  in
+    {r = r, g = g, b = b, a = a}
+  end
+
+fun setAlpha (c0: color, a) =
+  let
+    val {r, g, b, ...} = c0
+    val a = rgbToReal a
+  in
+    {r = r, g = g, b = b, a = a}
+  end
+
+fun setAlphaR (c0: color, a) =
+  let val {r, g, b, ...} = c0
+  in {r = r, g = g, b = b, a = a}
+  end
+
+fun getHue (h, m1, m2) =
+  let
+    val h = if h < 0.0 then h + 1.0 else if h > 1.0 then h - 1.0 else h
+  in
+    if Real.< (h, Real./ (1.0, 6.0)) then
+      m1 + (m2 - m1) * h * 6.0
+    else if Real.< (h, Real./ (3.0, 6.0)) then
+      m2
+    else if Real.< (h, Real./ (4.0, 6.0)) then
+      m2 + (m2 - m1) * (Real./ (2.0, 3.0) - h) * 6.0
+    else
+      m1
+  end
+
+fun hsla (h, s, l, a) =
+  let
+    val h = if Real.< (h, 0.0) then h + 1.0 else h
+    val s = clamp (s, 0.0, 1.0)
+    val l = clamp (l, 0.0, 1.0)
+
+    val m2 = if Real.<= (l, 0.5) then l * (s + 1.0) else l + s - l * s
+    val m1 = 2.0 * l - m2
+
+    val r = h + Real./ (1.0, 3.0)
+    val r = clamp (getHue (r, m1, m2), 0.0, 1.0)
+    val g = clamp (getHue (h, m1, m2), 0.0, 1.0)
+    val b = h - Real./ (1.0, 3.0)
+    val b = clamp (getHue (b, m1, m2), 0.0, 1.0)
+    val a = rgbToReal a
+  in
+    {r = r, g = g, b = b, a = a}
+  end
+
+fun hsl (h, s, l) = hsla (h, s, l, 255)
+
+val identity = (1, 0, 0, 1, 0, 0)
+
