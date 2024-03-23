@@ -12,7 +12,7 @@ sig
   val polyReverse: 'a vector -> 'a vector
   val curveDivs: real * real * real -> Word32.word
   val degToRad: real -> real
-  val ragToDeg: real -> real
+  val radToDeg: real -> real
 end
 
 structure MlvgMath: MLVG_MATH =
