@@ -227,5 +227,4 @@ fun hsla (h, s, l, a) =
 
 fun hsl (h, s, l) = hsla (h, s, l, 255)
 
-val identity = (1, 0, 0, 1, 0, 0)
-
+val identity = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
