@@ -1,4 +1,19 @@
-structure Mlvg =
+signature MLVG_MATH =
+sig
+  val clamp: real * real * real -> real
+  val sign: real -> real
+  val cross: int * int * int * int -> int
+  val quantize: real * real -> real
+  val ptEquals: int * int * int * int * int -> bool
+  val distPtSeg: real * real * real * real * real * real -> real
+  val getAverageScale: real * real * real * real * 'a * 'b -> real
+  val triarea2: real * real * real * real * real * real -> real
+  val polyArea: Point.t vector -> real
+  val polyReverse: 'a vector -> 'a vector
+  val curveDivs: real * real * real -> Word32.word
+end
+
+structure MlvgMath: MLVG_MATH =
 struct
   fun clamp (v, low, high) =
     if Real.< (v, low) then low else if Real.> (v, high) then high else v
@@ -50,7 +65,7 @@ struct
       (sx + sy) * 0.5
     end
 
-  fun triarea2 (ax, ay, bx, by, cx, cy) =
+  fun triarea2 (ax: real, ay: real, bx: real, by: real, cx: real, cy: real) =
     let
       val abx = bx - ax
       val aby = by - ay
@@ -60,7 +75,7 @@ struct
       acx * aby - abx * acy
     end
 
-  fun helpPolyArea (i, pts: Point.t vector, acc) =
+  fun helpPolyArea (i, pts: Point.t vector, acc: real) =
     if i < Vector.length pts then
       let
         val p0 = Vector.sub (pts, 0)
@@ -72,4 +87,20 @@ struct
       end
     else
       acc * 0.5
+
+  fun polyArea pts = helpPolyArea (2, pts, 0.0)
+
+  fun polyReverse pts =
+    let val length = Vector.length pts
+    in Vector.tabulate (length, (fn idx => Vector.sub (pts, length - idx)))
+    end
+
+  fun curveDivs (r, arc, tol) =
+    let
+      val da = Math.acos (r / (r + tol)) * 2.0
+      val ceil = Real.ceil (arc / da)
+      val result = Int.max (2, ceil)
+    in
+      Word32.fromInt result
+    end
 end
