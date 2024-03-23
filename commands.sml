@@ -1,15 +1,17 @@
 signature COMMAND =
 sig
   datatype t = BezierTo | Close | LineTo | MoveTo | Winding
-  val toValue: t -> real
-  val == : real * real -> bool
   exception InvalidCommand
+
+  val toValue: t -> real
   val fromValue: ((real * real -> bool) -> real -> bool) -> t
 end
 
 structure Command :> COMMAND =
 struct
   datatype t = MoveTo | LineTo | BezierTo | Close | Winding
+  exception InvalidCommand
+  val (==) = Real.==
 
   fun toValue cmd =
     case cmd of
@@ -18,10 +20,6 @@ struct
     | BezierTo => 2.0
     | Close => 3.0
     | Winding => 4.0
-
-  val (==) = Real.==
-
-  exception InvalidCommand
 
   fun fromValue num =
     if num == 0.0 then MoveTo

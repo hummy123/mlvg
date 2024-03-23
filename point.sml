@@ -10,6 +10,7 @@ sig
     , dmy: real
     , flags: PointFlags.t
     }
+
   val polyArea: t vector -> real
 end
 
