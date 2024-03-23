@@ -8,7 +8,6 @@ sig
   val distPtSeg: real * real * real * real * real * real -> real
   val getAverageScale: real * real * real * real * 'a * 'b -> real
   val triarea2: real * real * real * real * real * real -> real
-  val polyArea: Point.t vector -> real
   val polyReverse: 'a vector -> 'a vector
   val curveDivs: real * real * real -> Word32.word
   val degToRad: real -> real
@@ -76,21 +75,6 @@ struct
     in
       acx * aby - abx * acy
     end
-
-  fun helpPolyArea (i, pts: Point.t vector, acc: real) =
-    if i < Vector.length pts then
-      let
-        val p0 = Vector.sub (pts, 0)
-        val p1 = Vector.sub (pts, i - 1)
-        val p2 = Vector.sub (pts, i)
-        val acc = triarea2 (#x p0, #y p0, #x p1, #y p1, #x p2, #y p2)
-      in
-        helpPolyArea (i + 1, pts, acc)
-      end
-    else
-      acc * 0.5
-
-  fun polyArea pts = helpPolyArea (2, pts, 0.0)
 
   fun polyReverse pts =
     let val length = Vector.length pts

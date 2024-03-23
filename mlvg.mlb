@@ -1,5 +1,6 @@
 $(SML_LIB)/basis/basis.mlb
 
+mlvg_math.sml
 commands.sml
 color.sml
 point_flags.sml
@@ -17,5 +18,3 @@ line_join.sml
 line_cap.sml
 state.sml
 point.sml
-types.sml
-mlvg_math.sml
