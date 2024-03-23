@@ -11,6 +11,8 @@ sig
   val polyArea: Point.t vector -> real
   val polyReverse: 'a vector -> 'a vector
   val curveDivs: real * real * real -> Word32.word
+  val degToRad: real -> real
+  val ragToDeg: real -> real
 end
 
 structure MlvgMath: MLVG_MATH =
@@ -103,4 +105,8 @@ struct
     in
       Word32.fromInt result
     end
+
+  fun degToRad deg = deg / 180.0 * Math.pi
+
+  fun radToDeg rad = rad / Math.pi * 180.0
 end
