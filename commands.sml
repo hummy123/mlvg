@@ -1,5 +1,6 @@
 signature COMMAND =
 sig
+  type real = Real32.real
   datatype t =
     MoveTo of {x: real, y: real}
   | LineTo of {x: real, y: real}
@@ -12,6 +13,7 @@ end
 
 structure Command :> COMMAND =
 struct
+  open Real32
   datatype t =
     MoveTo of {x: real, y: real}
   | LineTo of {x: real, y: real}

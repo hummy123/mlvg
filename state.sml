@@ -1,5 +1,6 @@
 signature STATE =
 sig
+  type real = Real32.real
   type t =
     { compositeOperation: CompositeOperation.t
     , shapeAntialias: bool
@@ -17,6 +18,7 @@ end
 
 structure State :> STATE =
 struct
+  open Real32
   type t =
     { compositeOperation: CompositeOperation.t
     , shapeAntialias: bool

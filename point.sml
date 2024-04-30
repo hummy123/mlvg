@@ -1,5 +1,6 @@
 signature POINT =
 sig
+  type real = Real32.real
   type t =
     { x: real
     , y: real
@@ -16,6 +17,7 @@ end
 
 structure Point :> POINT =
 struct
+  open Real32
   type t =
     { x: real
     , y: real
@@ -27,6 +29,7 @@ struct
     , flags: PointFlags.t
     }
 
+  open Int
   fun helpPolyArea (i, pts: t vector, acc: real) =
     if i < Vector.length pts then
       let
@@ -38,7 +41,9 @@ struct
         helpPolyArea (i + 1, pts, acc)
       end
     else
-      acc * 0.5
+      let open Real32
+      in acc * 0.5
+      end
 
   fun polyArea pts = helpPolyArea (2, pts, 0.0)
 end

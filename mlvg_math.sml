@@ -1,5 +1,6 @@
 signature MLVG_MATH =
 sig
+  type real = Real32.real
   val clamp: real * real * real -> real
   val sign: real -> real
   val cross: int * int * int * int -> int
@@ -16,21 +17,12 @@ end
 
 structure MlvgMath: MLVG_MATH =
 struct
-  fun clamp (v, low, high) =
-    if Real.< (v, low) then low else if Real.> (v, high) then high else v
-
-  fun sign a =
-    if a >= 0.0 then 1.0 else ~1.0
+  fun polyReverse pts =
+    let val length = Vector.length pts
+    in Vector.tabulate (length, (fn idx => Vector.sub (pts, length - idx)))
+    end
 
   fun cross (dx0, dy0, dx1, dy1) = dx1 * dy0 - dx0 * dy1
-
-  fun quantize (a, d) =
-    let
-      val toRound = Real./ (a, d)
-      val rounded = Real.realRound toRound
-    in
-      rounded * d
-    end
 
   fun ptEquals (x1, y1, x2, y2, tol) =
     let
@@ -42,6 +34,25 @@ struct
       lhs < rhs
     end
 
+  (* Most operations are done on reals, so it's convenient to open the module,
+   * but the functions that don't use reals are above so they don't conflict
+   * with the open. *)
+  open Real32
+
+  fun clamp (v, low, high) =
+    if v < low then low else if v > high then high else v
+
+  fun sign a : Real32.real =
+    if a >= 0.0 then 1.0 else ~1.0
+
+  fun quantize (a, d) =
+    let
+      val toRound = a / d
+      val rounded = realRound toRound
+    in
+      rounded * d
+    end
+
   fun distPtSeg (x, y, px, py, qx, qy) =
     let
       val pqx = qx - px
@@ -50,7 +61,7 @@ struct
       val dy = y - py
       val d = pqx * pqx + pqy * pqy
       val t = pqx * dx + pqy * dy
-      val t = if Real.> (d, 0.0) then t / d else t
+      val t = if d > 0.0 then t / d else t
       val t = clamp (t, 0.0, 1.0)
       val dx = px + t * pqx - x
       val dy = py + t * pqy - y
@@ -76,15 +87,10 @@ struct
       acx * aby - abx * acy
     end
 
-  fun polyReverse pts =
-    let val length = Vector.length pts
-    in Vector.tabulate (length, (fn idx => Vector.sub (pts, length - idx)))
-    end
-
   fun curveDivs (r, arc, tol) =
     let
       val da = Math.acos (r / (r + tol)) * 2.0
-      val ceil = Real.ceil (arc / da)
+      val ceil = ceil (arc / da)
       val result = Int.max (2, ceil)
     in
       Word32.fromInt result
