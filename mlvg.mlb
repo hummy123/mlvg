@@ -1,5 +1,11 @@
 $(SML_LIB)/basis/basis.mlb
 
+ann
+  "allowVectorExps true"
+in
+  mlvg_vector.sml
+end
+
 mlvg_math.sml
 commands.sml
 color.sml
