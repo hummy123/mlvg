@@ -1,13 +1,13 @@
 structure MlvgVector =
 struct
-  type real = Real32.real
-  datatype t = Br of t vector | Lf of real vector
+  datatype 'a t = Br of 'a t vector | Lf of 'a vector
 
   val empty = Lf #[]
 
   (*
   * The toVectorHelp, toVectorHelpBranch and toVector functions are meant to
-  * create a vector 
+  * create a vector by using cons :: on the Lf vectors, from the last to the
+  * first.
    * *)
   fun toVectorHelp (Br br, acc) =
         (* There is still a segmentation fault if the below line is replaced
@@ -48,13 +48,19 @@ struct
 
   (*
   * Third method of preventing a segfault:
-  * At line 170, the number 900000 is used meaning that 900000 elements
+  * At line 180, the number 900000 is used meaning that 900000 elements
   * will be stored in the final vector.
   * I don't know the exact limit, but a lower number like storing 9000 elements
   * will not result in a segmentation fault.
   * *)
 
-  datatype append_result = Ok of t | Max of int
+  (*
+  * Fourth method of preventing a segfault: 
+  * At line 170, a Real32.real is being appended which results in a segfault,
+  * but changing this to an int prevents the segfault from occurring.
+  * *)
+
+  datatype 'a append_result = Ok of 'a t | Max of int
 
   (* 32 is the branching size used for Clojure's persistent vector,
    * which this is a simplified implementation of.
@@ -70,7 +76,7 @@ struct
     in createLinkHelp (0, depth - 1, insLf)
     end
 
-  fun appendHelp (Br br, insLf: real vector) =
+  fun appendHelp (Br br, insLf: 'a vector) =
         let
           val length = Vector.length br
           val lastIdx = length - 1
@@ -158,7 +164,10 @@ struct
     if ctr = limit then
       accVec
     else
-      let val accVec = append (accVec, #[Real32.fromInt ctr])
+      let 
+        (* Instead of appending #[Real32.fromInt ctr],
+         * append #[ctr] (which is an int) to prevent a segfault. *)
+        val accVec = append (accVec, #[Real32.fromInt ctr])
       in insMany (ctr + 1, limit, accVec)
       end
 
@@ -167,6 +176,7 @@ struct
       val startTime = Time.now ()
       val startTime = Time.toMicroseconds startTime
 
+      (* Change number 900000 to a lower number like 9000 to prevent a segfault. *)
       val vec = insMany (0, 900000, empty)
       val vec = toVector vec
 
